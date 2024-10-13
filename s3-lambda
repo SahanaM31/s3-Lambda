@@ -1,0 +1,41 @@
+import json
+import boto3
+import logging #log the details of the event
+
+#Initializing s3 client
+s3_client = boto3.client('s3')
+
+#Logger set up
+log = logging.getLogger()
+log.setLevel(logging.INFO)
+
+def lambda_handler(event, context):
+    #For the recently uploaded image in S3
+    bucket_name = event['Records'][0]['s3']['bucket']['name']
+    object_key = event['Records'][0]['s3']['object']['key']
+    #is used to extract the key (or name) of an object (file) from an S3 event that triggered the AWS
+
+    #Log the recently uploaded image name
+    log.info(f"New image uploaded: {object_key}")
+
+    #Fetch and log all existing images in the bucket
+    existing_images = list_images_in_bucket(bucket_name)
+
+    log.info(f"All images in the bucket: '{bucket_name}' - {existing_images}")
+
+    return{'statuscode':200,'body': json.dumps(f"Logged recently uploaded image {object_key} and all existing images." )}
+
+
+def list_images_in_bucket(bucket_name):
+    #display the list of items/images in the given s3 bucket
+    image_list = []
+    #listing objects in the bucket
+    response = s3_client.list_objects_v2(Bucket = bucket_name)
+    #checking whether the bucket contain objects
+    if 'contents' in response:
+        for obj in response['contents']:
+            #Checking object file type
+            if obj['key'].lower().endswith(('.jpg','.jpeg','.png')):
+                image_list.append(obj['key'])
+    return image_list
+
